@@ -1,0 +1,113 @@
+galsim.c:65:36: missed: statement clobbers memory: state_11 = malloc (48);
+galsim.c:66:25: missed: statement clobbers memory: _3 = malloc (_2);
+galsim.c:67:25: missed: statement clobbers memory: _4 = malloc (_2);
+galsim.c:68:26: missed: statement clobbers memory: _5 = malloc (_2);
+galsim.c:69:26: missed: statement clobbers memory: _6 = malloc (_2);
+galsim.c:70:28: missed: statement clobbers memory: _7 = malloc (_2);
+galsim.c:71:34: missed: statement clobbers memory: _8 = malloc (_2);
+galsim.c:77:5: missed: statement clobbers memory: free (_1);
+galsim.c:78:5: missed: statement clobbers memory: free (_2);
+galsim.c:79:5: missed: statement clobbers memory: free (_3);
+galsim.c:80:5: missed: statement clobbers memory: free (_4);
+galsim.c:81:5: missed: statement clobbers memory: free (_5);
+galsim.c:82:5: missed: statement clobbers memory: free (_6);
+galsim.c:107:32: missed: couldn't vectorize loop
+galsim.c:107:32: missed: not vectorized: control flow in loop.
+galsim.c:94:10: missed: statement clobbers memory: fp_27 = fopen (_1, "rb");
+galsim.c:65:36: missed: statement clobbers memory: state_116 = malloc (48);
+galsim.c:66:25: missed: statement clobbers memory: _119 = malloc (_118);
+galsim.c:67:25: missed: statement clobbers memory: _120 = malloc (_118);
+galsim.c:68:26: missed: statement clobbers memory: _121 = malloc (_118);
+galsim.c:69:26: missed: statement clobbers memory: _122 = malloc (_118);
+galsim.c:70:28: missed: statement clobbers memory: _123 = malloc (_118);
+galsim.c:71:34: missed: statement clobbers memory: _124 = malloc (_118);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _41 = __fread_alias (_6, 8, 1, fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _50 = __fread_alias (_9, 8, 1, fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _59 = __fread_alias (_11, 8, 1, fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _68 = __fread_alias (_13, 8, 1, fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _77 = __fread_alias (_15, 8, 1, fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212:12: missed: statement clobbers memory: _86 = __fread_alias (_17, 8, 1, fp_27);
+galsim.c:122:5: missed: statement clobbers memory: fclose (fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:86:10: missed: statement clobbers memory: __printf_chk (2, "Error reading particle %d\n", i_93);
+galsim.c:77:5: missed: statement clobbers memory: free (_125);
+galsim.c:78:5: missed: statement clobbers memory: free (_126);
+galsim.c:79:5: missed: statement clobbers memory: free (_127);
+galsim.c:80:5: missed: statement clobbers memory: free (_128);
+galsim.c:81:5: missed: statement clobbers memory: free (_129);
+galsim.c:82:5: missed: statement clobbers memory: free (_130);
+galsim.c:117:17: missed: statement clobbers memory: free (state_116);
+galsim.c:118:17: missed: statement clobbers memory: fclose (fp_27);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:86:10: missed: statement clobbers memory: __builtin_puts (&"open file error"[0]);
+galsim.c:173:28: missed: couldn't vectorize loop
+galsim.c:173:28: missed: not vectorized: control flow in loop.
+galsim.c:317:29: missed: couldn't vectorize loop
+galsim.c:317:29: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+galsim.c:338:21: missed: couldn't vectorize loop
+galsim.c:339:7: missed: statement clobbers memory: DrawCircle (_26, _22, 1.0e+0, 1.0e+0, 4.999999888241291046142578125e-3, _16);
+galsim.c:230:23: missed: couldn't vectorize loop
+galsim.c:234:19: missed: failed: evolution of base is not affine.
+galsim.c:323:2: missed: statement clobbers memory: calculate_forces (thrdID_37, Nthreads_41, Nparticles_39, particles_38, epsilon_43, fx_chunk_53, fy_chunk_54);
+galsim.c:326:2: missed: statement clobbers memory: pthread_barrier_wait (&barrier);
+galsim.c:329:2: missed: statement clobbers memory: pthread_barrier_wait (&barrier);
+galsim.c:333:2: missed: statement clobbers memory: pthread_barrier_wait (&barrier);
+galsim.c:337:3: missed: statement clobbers memory: ClearScreen ();
+galsim.c:339:7: missed: statement clobbers memory: DrawCircle (_26, _22, 1.0e+0, 1.0e+0, 4.999999888241291046142578125e-3, _16);
+galsim.c:341:3: missed: statement clobbers memory: Refresh ();
+galsim.c:342:3: missed: statement clobbers memory: usleep (10000);
+galsim.c:344:6: missed: statement clobbers memory: pthread_barrier_wait (&barrier);
+galsim.c:230:23: missed: couldn't vectorize loop
+galsim.c:234:19: missed: failed: evolution of base is not affine.
+galsim.c:358:23: missed: couldn't vectorize loop
+galsim.c:360:9: missed: statement clobbers memory: fwrite (_4, 8, 1, fp_20(D));
+galsim.c:360:9: missed: statement clobbers memory: fwrite (_4, 8, 1, fp_20(D));
+galsim.c:361:9: missed: statement clobbers memory: fwrite (_6, 8, 1, fp_20(D));
+galsim.c:362:9: missed: statement clobbers memory: fwrite (_8, 8, 1, fp_20(D));
+galsim.c:363:9: missed: statement clobbers memory: fwrite (_10, 8, 1, fp_20(D));
+galsim.c:364:9: missed: statement clobbers memory: fwrite (_12, 8, 1, fp_20(D));
+galsim.c:365:9: missed: statement clobbers memory: fwrite (_14, 8, 1, fp_20(D));
+galsim.c:450:23: missed: couldn't vectorize loop
+galsim.c:451:2: missed: statement clobbers memory: free (_45);
+galsim.c:437:23: missed: couldn't vectorize loop
+galsim.c:438:2: missed: statement clobbers memory: pthread_join (_40, 0B);
+galsim.c:431:23: missed: couldn't vectorize loop
+galsim.c:432:2: missed: statement clobbers memory: pthread_create (_35, 0B, thread_worker, _31);
+galsim.c:413:23: missed: couldn't vectorize loop
+galsim.c:414:24: missed: statement clobbers memory: _26 = calloc (_13, 8);
+galsim.c:369:34: missed: statement clobbers memory: saved_stack.2_60 = __builtin_stack_save ();
+galsim.c:378:28: missed: statement clobbers memory: delta_t_64 = strtod (_1, 0B);
+/usr/include/stdlib.h:483:16: missed: statement clobbers memory: _131 = strtol (_2, 0B, 10);
+/usr/include/stdlib.h:483:16: missed: statement clobbers memory: _129 = strtol (_4, 0B, 10);
+galsim.c:385:17: missed: statement clobbers memory: _6 = strcmp (_5, "1");
+/usr/include/stdlib.h:483:16: missed: statement clobbers memory: _127 = strtol (_9, 0B, 10);
+galsim.c:399:33: missed: statement clobbers memory: Forces_x_75 = calloc (_13, 8);
+galsim.c:400:33: missed: statement clobbers memory: Forces_y_77 = calloc (_13, 8);
+galsim.c:403:28: missed: statement clobbers memory: particles_79 = read_state_config (&params);
+galsim.c:407:38: missed: statement clobbers memory: threads_81 = malloc (_16);
+galsim.c:408:17: missed: statement clobbers memory: thrd_data_arr.0_83 = __builtin_alloca_with_align (_20, 64);
+galsim.c:409:5: missed: statement clobbers memory: pthread_barrier_init (&barrier, 0B, Nthreads.1_21);
+galsim.c:411:34: missed: statement clobbers memory: Fx_mtrx_86 = malloc (_22);
+galsim.c:412:34: missed: statement clobbers memory: Fy_mtrx_88 = malloc (_22);
+galsim.c:414:24: missed: statement clobbers memory: _26 = calloc (_13, 8);
+galsim.c:415:24: missed: statement clobbers memory: _28 = calloc (_13, 8);
+galsim.c:427:2: missed: statement clobbers memory: InitializeGraphics (_30, 800, 400);
+galsim.c:428:2: missed: statement clobbers memory: SetCAxes (0.0, 1.0e+0);
+galsim.c:432:2: missed: statement clobbers memory: pthread_create (_35, 0B, thread_worker, _31);
+galsim.c:435:5: missed: statement clobbers memory: thread_worker (_36);
+galsim.c:438:2: missed: statement clobbers memory: pthread_join (_40, 0B);
+galsim.c:442:2: missed: statement clobbers memory: FlushDisplay ();
+galsim.c:443:2: missed: statement clobbers memory: CloseDisplay ();
+galsim.c:446:16: missed: statement clobbers memory: fp_95 = fopen ("result.gal", "wb");
+galsim.c:447:5: missed: statement clobbers memory: write_state (fp_95, Nparticles_73, particles_79);
+galsim.c:448:5: missed: statement clobbers memory: fclose (fp_95);
+galsim.c:451:2: missed: statement clobbers memory: free (_45);
+galsim.c:452:2: missed: statement clobbers memory: free (_47);
+galsim.c:455:5: missed: statement clobbers memory: free (Fx_mtrx_86);
+galsim.c:455:20: missed: statement clobbers memory: free (Fy_mtrx_88);
+galsim.c:456:5: missed: statement clobbers memory: free (Forces_x_75);
+galsim.c:456:21: missed: statement clobbers memory: free (Forces_y_77);
+galsim.c:457:5: missed: statement clobbers memory: free_state_memory (particles_79);
+galsim.c:458:5: missed: statement clobbers memory: free (particles_79);
+galsim.c:458:22: missed: statement clobbers memory: free (threads_81);
+galsim.c:459:5: missed: statement clobbers memory: pthread_barrier_destroy (&barrier);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:86:10: missed: statement clobbers memory: __builtin_puts (&"Not enough input!"[0]);
+galsim.c:369:5: missed: statement clobbers memory: __builtin_stack_restore (saved_stack.2_60);
