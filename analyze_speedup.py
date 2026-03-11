@@ -32,7 +32,7 @@ def mean_std_sem(xs):
     return mean, std, sem
 
 
-def read_timings(filename="timings.txt"):
+def read_timings(filename="speedup_timings_speedup.txt"):
     """
     Expected line format:
         runtime  N  version  nsteps  nthreads
@@ -508,8 +508,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--timings",
-        default="timings.txt",
-        help="Path to timings file (default: timings.txt)",
+        default="timings_speedup.txt",
+        help="Path to timings file (default: timings_speedup.txt)",
     )
     args = parser.parse_args()
 

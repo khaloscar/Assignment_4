@@ -35,4 +35,5 @@ done
 
 make -C "$out_folder" clean
 echo "Running analysis..."
+mv timings.txt timings_runtimes.txt
 python3 analyze_runtimes.py

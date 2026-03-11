@@ -127,7 +127,7 @@ def print_summary_table(lines):
 
 def main():
     parser = argparse.ArgumentParser(description="Plot runtime vs Nparticles, all in one plot")
-    parser.add_argument("filename", nargs="?", default="timings.txt", help="Input timing file")
+    parser.add_argument("filename", nargs="?", default="timings_runtimes.txt", help="Input timing file")
     parser.add_argument("--output", default="plots/runtime_vs_N.png", help="Output image path")
     parser.add_argument("--title", default="Runtime vs Nparticles", help="Plot title")
     parser.add_argument("--loglog", action="store_true", help="Use log-log axes")

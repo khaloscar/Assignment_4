@@ -40,4 +40,5 @@ done
 make -C "$out_folder" clean
 
 echo "Running simulation analysis..."
-python3 analyze_timings.py
+mv timings.txt timings_speedup.txt
+python3 analyze_speedup.py
