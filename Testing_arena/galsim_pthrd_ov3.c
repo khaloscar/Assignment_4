@@ -86,15 +86,15 @@ typedef struct {
 } Thread_args;
 
 Gal_state* init_state(const int N) {
-
     Gal_state* state = (Gal_state*)malloc(sizeof(Gal_state));
-    state->x = (double*)malloc(N * sizeof(double));
-    state->y = (double*)malloc(N * sizeof(double));
-    state->dx = (double*)malloc(N * sizeof(double));
-    state->dy = (double*)malloc(N * sizeof(double));
-    state->mass = (double*)malloc(N * sizeof(double));
+    size_t size = N * sizeof(double);
+    size = (size + 63) & ~63;
+    state->x = (double*)aligned_alloc(64, size);
+    state->y = (double*)aligned_alloc(64, size);
+    state->dx = (double*)aligned_alloc(64, size);
+    state->dy = (double*)aligned_alloc(64, size);
+    state->mass = (double*)aligned_alloc(64, size);
     state->brightness = (double*)malloc(N * sizeof(double));
-
     return state;
 }
 
@@ -182,7 +182,38 @@ TODO:
 
 */
 
-int calculate_forces(const int thrdid, const int Nthreads, const int Nparticles, const Gal_state* restrict particles,
+void compute_force_range(const int thrdid, const int Nthreads, const int N,
+                         int* out_start, int* out_stop) {
+    // Total work: N*(N-1)/2 pair interactions
+    // Particle i does (N-1-i) interactions
+    // Find start and stop so each thread gets ~equal work
+    const double total_work = (double)N * (N - 1) / 2.0;
+    const double work_per_thread = total_work / Nthreads;
+
+    // Find start: accumulate work until we reach thrdid * work_per_thread
+    double target_start = thrdid * work_per_thread;
+    double target_stop = (thrdid + 1) * work_per_thread;
+
+    // Work from particle 0 to i is: sum_{k=0}^{i-1} (N-1-k) = i*N - i*(i+1)/2
+    // Solve i*N - i*(i+1)/2 = target for i
+    // This is a quadratic: -0.5*i^2 + (N-0.5)*i - target = 0
+    double a = -0.5;
+    double b = N - 0.5;
+
+    double disc_start = b * b - 4 * a * (-target_start);
+    *out_start = (int)floor((-b + sqrt(disc_start)) / (2 * a));
+    if (*out_start < 0) *out_start = 0;
+
+    if (thrdid == Nthreads - 1) {
+        *out_stop = N;
+    } else {
+        double disc_stop = b * b - 4 * a * (-target_stop);
+        *out_stop = (int)floor((-b + sqrt(disc_stop)) / (2 * a));
+        if (*out_stop > N) *out_stop = N;
+    }
+}
+
+int calculate_forces(const int start, const int stop, const int Nparticles, const Gal_state* restrict particles,
                 const double epsilon,
                 double* restrict f_x_ij, double* restrict f_y_ij) {
 
@@ -195,7 +226,7 @@ int calculate_forces(const int thrdid, const int Nthreads, const int Nparticles,
     // Force chunk is updated using pointers
     // local force arrays have already been set to zero
     // inside consolidate_forces() function previous time-step
-    for (int i = thrdid; i < Nparticles; i+= Nthreads)
+    for (int i = start; i < stop; i++)
     {        
         //Copy particle[i] to local variables avoiding reading memory each time
         const double pos_x_i = x[i];
@@ -317,6 +348,8 @@ void* thread_worker(void *args) {
     const double epsilon = params->epsilon;
     const int en_graphics = params->en_graphics;
 
+    int force_start, force_stop;
+    compute_force_range(thrdID, Nthreads, Nparticles, &force_start, &force_stop);
     // contigious scheduling, used in the consolidation of forces and update_state function
     const int base = Nparticles / Nthreads;
     const int rem = Nparticles % Nthreads;
@@ -345,7 +378,7 @@ void* thread_worker(void *args) {
 	//2. consolidate the forces
 	//3. update the state
 
-	calculate_forces(thrdID, Nthreads, Nparticles, particles,
+	calculate_forces(force_start, force_stop, Nparticles, particles,
 		epsilon, fx_chunk, fy_chunk);
 	// barrier
 	pthread_barrier_wait(&barrier);
@@ -393,14 +426,14 @@ void write_state(FILE* fp, int N, Gal_state* particles) {
 
 int main(int argc, char *argv[]) {
     
-    if (argc <= 6)
+    if (argc <= 7)
     {
         printf("Not enough input!\n");
         return 0;
     }
 
-    // const char *version_name = argv[7];
-    // const double start = get_wall_seconds();
+    const char *version_name = argv[7];
+    const double start = get_wall_seconds();
 
     // Runtime and compile time constants
     const double delta_t = strtod(argv[4], NULL);
@@ -422,10 +455,12 @@ int main(int argc, char *argv[]) {
     // The shared state array
     const int Nparticles = params.Nparticles;
     const int Nthreads = params.Nthreads;
+    const size_t alloc_size = ((Nparticles * sizeof(double)) + 63) & ~63;
 
-
-    double* Forces_x = (double*)calloc(Nparticles, sizeof(double));
-    double* Forces_y = (double*)calloc(Nparticles, sizeof(double));
+    double* Forces_x = (double*)aligned_alloc(64, alloc_size);
+    memset(Forces_x, 0, alloc_size);
+    double* Forces_y = (double*)aligned_alloc(64, alloc_size);
+    memset(Forces_y, 0, alloc_size);
 
     // particle state
     Gal_state *particles = read_state_config(&params);
@@ -439,8 +474,11 @@ int main(int argc, char *argv[]) {
     double** Fx_mtrx = (double**)malloc(Nthreads*sizeof(double*));
     double** Fy_mtrx = (double**)malloc(Nthreads*sizeof(double*));
     for (int i = 0; i < Nthreads; i++) {
-	Fx_mtrx[i] = (double*)calloc(Nparticles, sizeof(double));
-	Fy_mtrx[i] = (double*)calloc(Nparticles, sizeof(double));
+
+	Fx_mtrx[i]  = (double*)aligned_alloc(64, alloc_size);
+	memset(Fx_mtrx[i], 0, alloc_size);
+	Fy_mtrx[i]  = (double*)aligned_alloc(64, alloc_size);
+	memset(Fy_mtrx[i], 0, alloc_size);
 
 	thrd_data_arr[i].thrdid = i;
 	thrd_data_arr[i].params = &params;
@@ -471,9 +509,10 @@ int main(int argc, char *argv[]) {
 	CloseDisplay();
     }
 
-    FILE *fp = fopen("result.gal", "wb");
-    write_state(fp, Nparticles, particles);
-    fclose(fp);
+    // no need to write state when simulating
+    // FILE *fp = fopen("result.gal", "wb");
+    // write_state(fp, Nparticles, particles);
+    // fclose(fp);
     
     for (int i = 0; i < Nthreads; i++) {
 	free(Fx_mtrx[i]);
@@ -486,8 +525,8 @@ int main(int argc, char *argv[]) {
     free(particles); free(threads);
     pthread_barrier_destroy(&barrier);
 
-    // const double runtime = get_wall_seconds() - start;
-    // log_result("timings.txt", runtime, Nparticles, version_name, params.nsteps, Nthreads);
+    const double runtime = get_wall_seconds() - start;
+    log_result("timings.txt", runtime, Nparticles, version_name, params.nsteps, Nthreads);
     return 0;
 
 }

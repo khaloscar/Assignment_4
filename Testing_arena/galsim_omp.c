@@ -219,14 +219,14 @@ void write_state(FILE* fp, int n_thread, int N, Gal_state* particles) {
 
 int main(int argc, char *argv[]) {
     
-    if (argc <= 6)
+    if (argc <= 7)
     {
         printf("Not enough input!\n");
         return 0;
     }
 
-    // const char *version_name = argv[7];
-    // const double start = get_wall_seconds();
+    const char *version_name = argv[7];
+    const double start = get_wall_seconds();
 
     // Runtime and compile time constants
     const int n_thread = atoi(argv[6]);
@@ -279,9 +279,9 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    FILE *fp = fopen("result.gal", "wb");
-    write_state(fp, n_thread, N, particles);
-    fclose(fp);
+    // FILE *fp = fopen("result.gal", "wb");
+    // write_state(fp, n_thread, N, particles);
+    // fclose(fp);
     
     free_state_memory(particles);
     free(particles);
@@ -291,8 +291,8 @@ int main(int argc, char *argv[]) {
     f_y_ij = NULL; f_x_ij = NULL;
     
 
-    // const double runtime = get_wall_seconds() - start;
-    // log_result("timings.txt", runtime, N, version_name, nsteps, n_thread);
+    const double runtime = get_wall_seconds() - start;
+    log_result("timings.txt", runtime, N, version_name, nsteps, n_thread);
     return 0;
 
 }

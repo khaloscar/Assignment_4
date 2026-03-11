@@ -192,42 +192,46 @@ int calculate_forces(const int thrdid, const int Nthreads, const int Nparticles,
 
     double* restrict fx = f_x_ij;
     double* restrict fy = f_y_ij;
+    const int BLOCK = 8;
     // Force chunk is updated using pointers
     // local force arrays have already been set to zero
     // inside consolidate_forces() function previous time-step
-    for (int i = thrdid; i < Nparticles; i+= Nthreads)
-    {        
-        //Copy particle[i] to local variables avoiding reading memory each time
-        const double pos_x_i = x[i];
-        const double pos_y_i = y[i];
-        const double mass_i = m[i];
+    for (int block = thrdid*BLOCK; block < Nparticles; block+=Nthreads*BLOCK) {
+	int end = block + BLOCK < Nparticles ? block + BLOCK : Nparticles;
+	for (int i = block; i < end; i++)
+	{        
+	    //Copy particle[i] to local variables avoiding reading memory each time
+	    const double pos_x_i = x[i];
+	    const double pos_y_i = y[i];
+	    const double mass_i = m[i];
 
-	// accumulate forces and update once
-        double fxi = 0.0;
-        double fyi = 0.0;
-        // j starts from i+1 - symmetric force update
-        for (int j = i+1; j < Nparticles; j++)
-        {
-            const double pos_x_j = x[j];
-            const double pos_y_j = y[j];
-            const double mass_j = m[j];
-    
-            const double r_x = pos_x_i - pos_x_j;
-            const double r_y = pos_y_i - pos_y_j;
-            const double r_ij_mag = sqrt(r_x*r_x + r_y*r_y) + epsilon;
-	    const double invr = 1.0 / r_ij_mag;
-            const double div = invr * invr * invr;
+	    // accumulate forces and update once
+	    double fxi = 0.0;
+	    double fyi = 0.0;
+	    // j starts from i+1 - symmetric force update
+	    for (int j = i+1; j < Nparticles; j++)
+	    {
+		const double pos_x_j = x[j];
+		const double pos_y_j = y[j];
+		const double mass_j = m[j];
+	
+		const double r_x = pos_x_i - pos_x_j;
+		const double r_y = pos_y_i - pos_y_j;
+		const double r_ij_mag = sqrt(r_x*r_x + r_y*r_y) + epsilon;
+		const double invr = 1.0 / r_ij_mag;
+		const double div = invr * invr * invr;
 
-            // Update forces symmetrically for both particles: F_ij = -F_ji
-            fxi -= mass_j * div * r_x; //accumulate
-            fyi -= mass_j * div * r_y; //accumulate
-            fx[j] += mass_i * div * r_x;
-            fy[j] += mass_i * div * r_y;
-        }
+		// Update forces symmetrically for both particles: F_ij = -F_ji
+		fxi -= mass_j * div * r_x; //accumulate
+		fyi -= mass_j * div * r_y; //accumulate
+		fx[j] += mass_i * div * r_x;
+		fy[j] += mass_i * div * r_y;
+	    }
 
-        fx[i] += fxi; // accumulated changes are written to i:th particle
-        fy[i] += fyi;
+	    fx[i] += fxi; // accumulated changes are written to i:th particle
+	    fy[i] += fyi;
 
+	}
     }
     return 0;
 }
@@ -323,6 +327,9 @@ void* thread_worker(void *args) {
     const int start = thrdID * base + (thrdID < rem ? thrdID : rem);
     const int stop = start + base + (thrdID < rem ? 1 : 0);
 
+    const int block = 8;
+    const int stride = block * Nthreads;
+
     // main force state array, with the final forces, should
     // be shared across threads...
     double* Forces_x = data->Forces_x;
@@ -393,14 +400,14 @@ void write_state(FILE* fp, int N, Gal_state* particles) {
 
 int main(int argc, char *argv[]) {
     
-    if (argc <= 6)
+    if (argc <= 7)
     {
         printf("Not enough input!\n");
         return 0;
     }
 
-    // const char *version_name = argv[7];
-    // const double start = get_wall_seconds();
+    const char *version_name = argv[7];
+    const double start = get_wall_seconds();
 
     // Runtime and compile time constants
     const double delta_t = strtod(argv[4], NULL);
@@ -471,9 +478,10 @@ int main(int argc, char *argv[]) {
 	CloseDisplay();
     }
 
-    FILE *fp = fopen("result.gal", "wb");
-    write_state(fp, Nparticles, particles);
-    fclose(fp);
+    // no need to write state when simulating
+    // FILE *fp = fopen("result.gal", "wb");
+    // write_state(fp, Nparticles, particles);
+    // fclose(fp);
     
     for (int i = 0; i < Nthreads; i++) {
 	free(Fx_mtrx[i]);
@@ -486,8 +494,8 @@ int main(int argc, char *argv[]) {
     free(particles); free(threads);
     pthread_barrier_destroy(&barrier);
 
-    // const double runtime = get_wall_seconds() - start;
-    // log_result("timings.txt", runtime, Nparticles, version_name, params.nsteps, Nthreads);
+    const double runtime = get_wall_seconds() - start;
+    log_result("timings.txt", runtime, Nparticles, version_name, params.nsteps, Nthreads);
     return 0;
 
 }

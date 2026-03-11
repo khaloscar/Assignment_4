@@ -1,4 +1,4 @@
-CFLAGS=-Wall -O3 -march=native -ffast-math
+CFLAGS=-Wall -O3 -march=native -ffast-math -funroll-loops
 INCLUDES=-I/opt/X11/include
 LDFLAGS=-L/opt/X11/lib -lX11 -lm -lpthread
 GRAPHICS = .
