@@ -32,7 +32,7 @@ def mean_std_sem(xs):
     return mean, std, sem
 
 
-def read_timings(filename="speedup_timings_speedup.txt"):
+def read_timings(filename="timings_speedup.txt"):
     """
     Expected line format:
         runtime  N  version  nsteps  nthreads
