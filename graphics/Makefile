@@ -1,7 +1,7 @@
-CFLAGS=-Wall -O3 -march=native -ffast-math -funroll-loops
+CFLAGS=-Wall -O3 -march=native -ffast-math -funroll-loops -fopenmp
 #CFLAGS=-Wall -O3 -g
 INCLUDES=-I/opt/X11/include
-LDFLAGS=-L/opt/X11/lib -lX11 -lm -lpthread
+LDFLAGS=-L/opt/X11/lib -lX11 -lm -lpthread -fopenmp
 GRAPHICS = .
 galsim: $(GRAPHICS)/galsim.o $(GRAPHICS)/graphics.o
 	gcc -o galsim $(GRAPHICS)/galsim.o $(GRAPHICS)/graphics.o $(LDFLAGS)

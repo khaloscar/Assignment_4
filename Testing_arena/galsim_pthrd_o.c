@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <math.h>
 #include "graphics.h"
 #include <pthread.h>
@@ -31,18 +30,10 @@ fprintf(f, "%.15f %d %s %d %d\n", runtime, N, version, nsteps, Nthreads);
 fclose(f);
 }
 
+pthread_barrier_t barrier; 
 // graphic +++
 const float circleRadius=0.005, circleColor=0;
 const int windowWidth=800;
-pthread_barrier_t barrier; 
-
-void keep_within_box(float* xA, float* yA) {
-  if(*xA > 1)
-    *xA = 0;
-  if(*yA > 1)
-    *yA = 0;
-}
-
 // graphic ---
 
 // Array of Structs approach, easy to understand and implement 
@@ -81,8 +72,6 @@ typedef struct {
     Gal_state* particles;
     double** Fx_mtrx;
     double** Fy_mtrx;
-    double* Forces_x;
-    double* Forces_y;
 } Thread_args;
 
 Gal_state* init_state(const int N) {
@@ -190,101 +179,86 @@ int calculate_forces(const int thrdid, const int Nthreads, const int Nparticles,
     const double* restrict y = particles->y;
     const double* restrict m = particles->mass;
 
+
     double* restrict fx = f_x_ij;
     double* restrict fy = f_y_ij;
     // Force chunk is updated using pointers
     // local force arrays have already been set to zero
     // inside consolidate_forces() function previous time-step
-    for (int i = thrdid; i < Nparticles; i+= Nthreads)
-    {        
-        //Copy particle[i] to local variables avoiding reading memory each time
-        const double pos_x_i = x[i];
-        const double pos_y_i = y[i];
-        const double mass_i = m[i];
-
-	// accumulate forces and update once
-        double fxi = 0.0;
-        double fyi = 0.0;
-        // j starts from i+1 - symmetric force update
-        for (int j = i+1; j < Nparticles; j++)
-        {
-            const double pos_x_j = x[j];
-            const double pos_y_j = y[j];
-            const double mass_j = m[j];
+    const int chunk = 8;
+    const int chunk_stride = Nthreads * chunk;
+    for (int iblock = thrdid * chunk; iblock < Nparticles; iblock += chunk_stride) {
+	const int iend = (iblock + chunk < Nparticles) ? (iblock + chunk) : Nparticles;
     
-            const double r_x = pos_x_i - pos_x_j;
-            const double r_y = pos_y_i - pos_y_j;
-            const double r_ij_mag = sqrt(r_x*r_x + r_y*r_y) + epsilon;
-	    const double invr = 1.0 / r_ij_mag;
-            const double div = invr * invr * invr;
+	for (int i = iblock; i < iend; i++)
+	{        
+	    //Copy particle[i] to local variables avoiding reading memory each time
+	    const double pos_x_i = x[i];
+	    const double pos_y_i = y[i];
+	    const double mass_i = m[i];
 
-            // Update forces symmetrically for both particles: F_ij = -F_ji
-            fxi -= mass_j * div * r_x; //accumulate
-            fyi -= mass_j * div * r_y; //accumulate
-            fx[j] += mass_i * div * r_x;
-            fy[j] += mass_i * div * r_y;
-        }
+	    // accumulate forces and update once
+	    double fxi = 0.0;
+	    double fyi = 0.0;
+	    // j starts from i+1 - symmetric force update
+	    for (int j = i+1; j < Nparticles; j++)
+	    {
+		const double pos_x_j = x[j];
+		const double pos_y_j = y[j];
+		const double mass_j = m[j];
+	
+		const double r_x = pos_x_i - pos_x_j;
+		const double r_y = pos_y_i - pos_y_j;
+		const double r_ij_mag = sqrt(r_x*r_x + r_y*r_y) + epsilon;
+		const double invr = 1.0 / r_ij_mag;
+		const double div = invr * invr * invr;
 
-        fx[i] += fxi; // accumulated changes are written to i:th particle
-        fy[i] += fyi;
+		// Update forces symmetrically for both particles: F_ij = -F_ji
+		fxi -= mass_j * div * r_x; //accumulate
+		fyi -= mass_j * div * r_y; //accumulate
+		fx[j] += mass_i * div * r_x;
+		fy[j] += mass_i * div * r_y;
+	    }
 
-    }
-    return 0;
-}
+	    fx[i] += fxi; // accumulated changes are written to i:th particle
+	    fy[i] += fyi;
 
-int consolidate_forces(int Nthreads,
-			double** restrict Fx_mtrx,
-			double** restrict Fy_mtrx,
-			double* restrict forces_x,
-			double* restrict forces_y,
-			const int start,
-			const int stop) {
-
-    // Nthreads create N force arrays to be consolidated.
-    // This should trivially parallelize 
-    // Force chunk matrix is really upper triangular
-    // size Nthreads x Nparticles
-    // each column of the matrix is supposed to be summed up into force array
-    // size 1 x Nparticles
-    // ideally you store values sparsely and load balance this evenly
-    // but here the naive approach is implemented
-    // could maybe add local buffer idk
-    double *restrict fx = forces_x;
-    double *restrict fy = forces_y;
-
-    for (int j = 0; j < Nthreads; j++) {
-	double *restrict rowx = Fx_mtrx[j];
-	double *restrict rowy = Fy_mtrx[j];
-	for (int i = start; i < stop; i++) {
-	    fx[i] += rowx[i];
-	    fy[i] += rowy[i];
-
-	    // can just reset to zero as we go, 
-	    // avoiding memset/calloc going through the whole shebang again
-	    rowx[i] = 0.0;
-	    rowy[i] = 0.0;
 	}
     }
     return 0;
 }
 
-int update_galstate(Gal_state* restrict particles,
-		     double* restrict F_x,
-		     double* restrict F_y,
-		     const double dt_G,
-		     const double delta_t,
-		     const int start,
-		     const int stop) {
+int consolidate_and_update_state(int Nthreads,
+			double** restrict Fx_mtrx,
+			double** restrict Fy_mtrx,
+			const int start,
+			const int stop,
+			Gal_state* particles,
+			const double dt_G,
+			const double delta_t) {
 
+    
+    
+    double vel_x_next; double vel_y_next;
+    // accumulate and update to new state in one go
     double* restrict x = particles->x;
     double* restrict y = particles->y;
     double* restrict dx = particles->dx;
     double* restrict dy = particles->dy;
-    // trivial to parallelize, contigious scheduling
-    for (int i = start; i < stop; i++) {
 
-        const double vel_x_next = dx[i] + dt_G * F_x[i];
-        const double vel_y_next = dy[i] + dt_G * F_y[i];
+    for (int i = start; i<stop; i++) {
+
+	double ifx = 0.0; double ify = 0.0; // accumulate force (or really acceleration) into one variable
+	for (int j = 0; j<Nthreads; j++) {
+	    ifx += Fx_mtrx[j][i];
+	    ify += Fy_mtrx[j][i];
+
+	    Fx_mtrx[j][i] = 0.0; // set to zero, avoiding call to memset later
+	    Fy_mtrx[j][i] = 0.0;
+	}
+
+        vel_x_next = dx[i] + dt_G * ifx;
+        vel_y_next = dy[i] + dt_G * ify;
 
         // update
         x[i] += delta_t * vel_x_next;
@@ -293,13 +267,43 @@ int update_galstate(Gal_state* restrict particles,
         dx[i] = vel_x_next;
         dy[i] = vel_y_next;
 
-	// zero forces for next timestep, will avoid a separate memset or calloc..
-	F_x[i] = 0.0;
-	F_y[i] = 0.0;
     }
-
     return 0;
 }
+
+// old and currently unused code
+// int update_galstate(Gal_state* restrict particles,
+// 		     double* restrict F_x,
+// 		     double* restrict F_y,
+// 		     const double dt_G,
+// 		     const double delta_t,
+// 		     const int start,
+// 		     const int stop) {
+//
+//     double* restrict x = particles->x;
+//     double* restrict y = particles->y;
+//     double* restrict dx = particles->dx;
+//     double* restrict dy = particles->dy;
+//     // trivial to parallelize, contigious scheduling
+//     for (int i = start; i < stop; i++) {
+//
+//         const double vel_x_next = dx[i] + dt_G * F_x[i];
+//         const double vel_y_next = dy[i] + dt_G * F_y[i];
+//
+//         // update
+//         x[i] += delta_t * vel_x_next;
+//         y[i] += delta_t * vel_y_next;
+//
+//         dx[i] = vel_x_next;
+//         dy[i] = vel_y_next;
+//
+// 	// zero forces for next timestep, will avoid a separate memset or calloc..
+// 	F_x[i] = 0.0;
+// 	F_y[i] = 0.0;
+//     }
+//
+//     return 0;
+// }
 
 
 void* thread_worker(void *args) {
@@ -323,12 +327,6 @@ void* thread_worker(void *args) {
     const int start = thrdID * base + (thrdID < rem ? thrdID : rem);
     const int stop = start + base + (thrdID < rem ? 1 : 0);
 
-    // main force state array, with the final forces, should
-    // be shared across threads...
-    double* Forces_x = data->Forces_x;
-    double* Forces_y = data->Forces_y;
-
-
     // force matrices used for book-keeping all of the forces
     // calculated by each thread, Nthreads x Nparticles
     double** Fx_mtrx = data->Fx_mtrx;
@@ -342,22 +340,17 @@ void* thread_worker(void *args) {
     for (int step = 0; step < params->nsteps; step++) {
 
 	//1. get force chunks
-	//2. consolidate the forces
-	//3. update the state
+	//2. consolidate forces and update at the same time
 
 	calculate_forces(thrdID, Nthreads, Nparticles, particles,
 		epsilon, fx_chunk, fy_chunk);
 	// barrier
 	pthread_barrier_wait(&barrier);
-	consolidate_forces(Nthreads, Fx_mtrx, Fy_mtrx, Forces_x, Forces_y, start, stop);
+	consolidate_and_update_state(Nthreads, Fx_mtrx, Fy_mtrx, start, stop, particles, dt_G, delta_t);
 	//barrier
 	pthread_barrier_wait(&barrier);
-	update_galstate(particles, Forces_x, Forces_y, dt_G, delta_t, start, stop);
-	// woop the state have been updated
-	// barrier for next time step
-	pthread_barrier_wait(&barrier);
 
-	if (en_graphics) {
+	if (en_graphics) { // en_graphics is either const 0 or 1 for one simulation ==> branch prediction will essentially ignore this after the first timestep
 	    if (thrdID == 0) {
 		ClearScreen();
 		for (int i = 0; i < Nparticles; i++)
@@ -369,11 +362,6 @@ void* thread_worker(void *args) {
 	    pthread_barrier_wait(&barrier);
 	}
     }
-
-    // a thread can consolidate all of its chunks
-    // perhaps this can be avoided and done directly with clever
-    // stepping given that the scheduling should be cyclic or w/e its called
-    // and then whatever force chunk a thread produces is rather mixed
 
     return NULL;
 }
@@ -423,10 +411,6 @@ int main(int argc, char *argv[]) {
     const int Nparticles = params.Nparticles;
     const int Nthreads = params.Nthreads;
 
-
-    double* Forces_x = (double*)calloc(Nparticles, sizeof(double));
-    double* Forces_y = (double*)calloc(Nparticles, sizeof(double));
-
     // particle state
     Gal_state *particles = read_state_config(&params);
     
@@ -447,8 +431,6 @@ int main(int argc, char *argv[]) {
 	thrd_data_arr[i].particles = particles;
 	thrd_data_arr[i].Fx_mtrx = Fx_mtrx;
 	thrd_data_arr[i].Fy_mtrx = Fy_mtrx;
-	thrd_data_arr[i].Forces_x = Forces_x;
-	thrd_data_arr[i].Forces_y = Forces_y;
     }
 
     if (params.en_graphics) {
@@ -482,7 +464,6 @@ int main(int argc, char *argv[]) {
     }
 
     free(Fx_mtrx); free(Fy_mtrx);
-    free(Forces_x); free(Forces_y);
     free_state_memory(particles);
     free(particles); free(threads);
     pthread_barrier_destroy(&barrier);
